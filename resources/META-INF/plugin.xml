@@ -1,0 +1,34 @@
+<idea-plugin>
+  <id>com.uddernetworks.codehelp</id>
+  <name>CodeHelp</name>
+  <version>1.0</version>
+  <vendor email="inbox@rubbaboy.me" url="http://www.shitprojects.download/">RubbaBoy</vendor>
+
+  <description><![CDATA[
+      Provides help for writing code.
+    ]]></description>
+
+  <change-notes><![CDATA[
+      Created plugin.
+    ]]>
+  </change-notes>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <!--<idea-version since-build="173.0"/>-->
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <!-- uncomment to enable plugin in all products
+  <depends>com.intellij.modules.lang</depends>
+  -->
+
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="Code Help" secondary="true" icon="/help.png" anchor="right"
+                factoryClass="com.uddernetworks.codehelp.HelpToolWindow"/>
+  </extensions>
+
+  <actions>
+
+  </actions>
+
+</idea-plugin>
