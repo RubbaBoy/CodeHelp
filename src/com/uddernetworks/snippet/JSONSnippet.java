@@ -3,7 +3,7 @@ package com.uddernetworks.snippet;
 public class JSONSnippet implements SnippetObject {
 
     private int id;
-    private long date;
+    private String date;
     private String Title;
     private String Author;
     private String description;
@@ -11,7 +11,7 @@ public class JSONSnippet implements SnippetObject {
     private Snippet[] snippets;
 
 
-    public JSONSnippet(int id, long date, String title, String author, String description, String[] tags, Snippet[] snippets) {
+    public JSONSnippet(int id, String date, String title, String author, String description, String[] tags, Snippet[] snippets) {
         this.id = id;
         this.date = date;
         this.Title = title;
@@ -31,7 +31,7 @@ public class JSONSnippet implements SnippetObject {
         return id;
     }
 
-    public long getDate() {
+    public String getDate() {
         return date;
     }
 

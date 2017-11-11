@@ -68,10 +68,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class HelpToolWindow implements ToolWindowFactory {
@@ -110,6 +108,13 @@ public class HelpToolWindow implements ToolWindowFactory {
 
     @Override
     public void init(ToolWindow toolWindow) {
+        snippets = new File(PluginManager.getPlugin(PluginId.getId("com.uddernetworks.codehelp")).getPath().getAbsolutePath() + File.separator + "snippets");
+
+        System.out.println("Checking for updates....");
+        UpdateManager updateManager = new UpdateManager(snippets.getParentFile());
+        updateManager.checkForUpdates();
+        System.out.println("Done checking for updates!");
+
         Icon tempIcon = IconLoader.getIcon("/general/contextHelp.png");
 
         try {
@@ -120,7 +125,6 @@ public class HelpToolWindow implements ToolWindowFactory {
             e.printStackTrace();
         }
 
-        snippets = new File(PluginManager.getPlugin(PluginId.getId("com.uddernetworks.codehelp")).getPath().getAbsolutePath() + File.separator + "snippets");
         createIndex(snippets);
 
         try {
@@ -135,14 +139,6 @@ public class HelpToolWindow implements ToolWindowFactory {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-         /*
-
-         contextHelp.png
-         winHelp.png
-         helpButton.png
-
-          */
     }
 
     @Override
@@ -156,6 +152,10 @@ public class HelpToolWindow implements ToolWindowFactory {
         snippetContent.setPreferredSize(new Dimension(rightWidth, jpanel.getHeight()));
         snippetContent.setBounds(200, 0, rightWidth, jpanel.getHeight());
         snippetContent.repaint();
+
+        leftContainer.setBounds(0, 0, 200, jpanel.getHeight());
+        leftContainer.setPreferredSize(new Dimension(200, jpanel.getHeight()));
+        leftContainer.repaint();
 
         titleBarFrame.setOpaque(true);
 
@@ -200,19 +200,6 @@ public class HelpToolWindow implements ToolWindowFactory {
         jTree.setRootVisible(false);
 
         jTree.addTreeSelectionListener(event -> {
-            if (welcomeScreen != null) {
-                welcomeScreen.setPreferredSize(new Dimension(0, 0));
-                welcomeScreen.setBounds(0, 0, 0, 0);
-                welcomeScreen.repaint();
-                snippetContent.remove(welcomeScreen);
-                welcomeScreen = null;
-
-                bookmarkButton.show();
-                infoButton.show();
-            }
-
-            snippetContent.show(true);
-
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) jTree.getLastSelectedPathComponent();
 
             if (node == null) return;
@@ -230,6 +217,19 @@ public class HelpToolWindow implements ToolWindowFactory {
             }
 
             if (jsonSnippet == null) return;
+
+            if (welcomeScreen != null) {
+                welcomeScreen.setPreferredSize(new Dimension(0, 0));
+                welcomeScreen.setBounds(0, 0, 0, 0);
+                welcomeScreen.repaint();
+                snippetContent.remove(welcomeScreen);
+                welcomeScreen = null;
+
+                bookmarkButton.show();
+                infoButton.show();
+            }
+
+            snippetContent.show(true);
 
             updateBookmark(bookmarkManager.isBookmarked(jsonSnippet.getId()));
 
@@ -302,7 +302,7 @@ public class HelpToolWindow implements ToolWindowFactory {
         } catch (IOException | FontFormatException e) {
             e.printStackTrace();
         }
-        titleBarFrame.add(snippetTitle, gb.nextLine().anchor(GridBagConstraints.NORTHWEST).fillCellHorizontally().weightx(0.6));
+        titleBarFrame.add(snippetTitle, gb.nextLine().anchor(GridBagConstraints.NORTHWEST).padx(70).fillCellHorizontally().weightx(1));
 
         infoButton = new JLabel(moreInfoIcon);
         infoButton.setMinimumSize(new Dimension(20, 20));
@@ -348,7 +348,7 @@ public class HelpToolWindow implements ToolWindowFactory {
             }
         });
 
-        titleBarFrame.add(infoButton, gb.next().next().anchor(GridBagConstraints.EAST).weightx(0.2));
+        titleBarFrame.add(infoButton, gb.next().next().anchor(GridBagConstraints.EAST).padx(10));
 
 
         bookmarkButton = new JLabel(unbookmarkedIcon);
@@ -390,7 +390,9 @@ public class HelpToolWindow implements ToolWindowFactory {
             }
         });
 
-        titleBarFrame.add(bookmarkButton, gb.next().next().anchor(GridBagConstraints.EAST).weightx(0.1));
+        bookmarkButton.setOpaque(true);
+//        bookmarkButton.setBackground(JBColor.RED);
+        titleBarFrame.add(bookmarkButton, gb.next().next().anchor(GridBagConstraints.EAST).padx(10));
 
 
 //        snippetAuthor = new JLabel("Snippet Author");
@@ -405,9 +407,7 @@ public class HelpToolWindow implements ToolWindowFactory {
         titleBarFrame.add(snippetAuthor, gb.nextLine().fillCellHorizontally().weightx(1));
 
 
-        String lipsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. In leo ante, fringilla pellentesque fringilla ut, rutrum mollis felis. Phasellus bibendum posuere purus egestas facilisis. Nullam urna leo, hendrerit nec vulputate id, ullamcorper tempor dolor. Quisque et dignissim sem. Praesent in ornare odio. Aenean tempus at lacus pulvinar fringilla. Etiam placerat ac quam vitae sagittis. Nullam non enim ullamcorper, egestas massa in, lobortis est.";
 
-//        snippetDescription = new JLabel("<html>" + lipsum + "</html>");
         snippetDescription = new JLabel();
         snippetDescription.setBorder(new JBEmptyBorder(10));
         titleBarFrame.add(snippetDescription, gb.nextLine().fillCellHorizontally().weightx(1));

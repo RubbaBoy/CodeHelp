@@ -31,9 +31,11 @@ public class BookmarkManager {
         bookmarkFilePath = Paths.get(base.getAbsolutePath() + File.separator + "index.chbookmarks");
         if (!bookmarkFilePath.toFile().exists()) {
             bookmarkFilePath.toFile().createNewFile();
-            bookmarks = new Bookmarks();
         } else {
             bookmarks = gson.fromJson(new String(Files.readAllBytes(bookmarkFilePath)), Bookmarks.class);
+        }
+        if (bookmarks == null) {
+            bookmarks = new Bookmarks();
         }
     }
 
@@ -104,7 +106,6 @@ public class BookmarkManager {
             }
         }
 
-//        jTree.repaint();
         System.out.println("bookmarkNode = " + bookmarkNode);
         return bookmarkNode;
     }
