@@ -22,17 +22,17 @@ public class BookmarkManager {
 
     private Bookmarks bookmarks;
     private BookmarkChange onChange;
-    private Path bookmarkFilePath;
+    private File bookmarkFile;
     private Gson gson;
     private DefaultMutableTreeNode bookmarkNode;
 
     public BookmarkManager(File base) throws IOException {
         gson = new Gson();
-        bookmarkFilePath = Paths.get(base.getAbsolutePath() + File.separator + "index.chbookmarks");
-        if (!bookmarkFilePath.toFile().exists()) {
-            bookmarkFilePath.toFile().createNewFile();
+        bookmarkFile = new File(base.getAbsolutePath() + File.separator + "index.chbookmarks");
+        if (!bookmarkFile.exists()) {
+            bookmarkFile.createNewFile();
         } else {
-            bookmarks = gson.fromJson(new String(Files.readAllBytes(bookmarkFilePath)), Bookmarks.class);
+            bookmarks = gson.fromJson(new String(Files.readAllBytes(Paths.get(bookmarkFile.toURI()))), Bookmarks.class);
         }
         if (bookmarks == null) {
             bookmarks = new Bookmarks();
@@ -65,7 +65,7 @@ public class BookmarkManager {
 
     private void saveBookmarks() {
         try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(bookmarkFilePath.toFile()));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(bookmarkFile));
             writer.write(gson.toJson(bookmarks));
             writer.close();
         } catch (IOException e) {

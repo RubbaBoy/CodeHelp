@@ -11,6 +11,9 @@ import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.colors.EditorColorsScheme;
 import com.intellij.openapi.extensions.Extensions;
 import com.intellij.openapi.extensions.PluginId;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopup;
@@ -108,11 +111,17 @@ public class HelpToolWindow implements ToolWindowFactory {
 
     @Override
     public void init(ToolWindow toolWindow) {
+
+    }
+
+    private void OLDinit(Project project) {
         snippets = new File(PluginManager.getPlugin(PluginId.getId("com.uddernetworks.codehelp")).getPath().getAbsolutePath() + File.separator + "snippets");
+
+        snippets.mkdirs();
 
         System.out.println("Checking for updates....");
         UpdateManager updateManager = new UpdateManager(snippets.getParentFile());
-        updateManager.checkForUpdates();
+        updateManager.checkForUpdates(project);
         System.out.println("Done checking for updates!");
 
         Icon tempIcon = IconLoader.getIcon("/general/contextHelp.png");
@@ -125,15 +134,30 @@ public class HelpToolWindow implements ToolWindowFactory {
             e.printStackTrace();
         }
 
-        createIndex(snippets);
+        createIndex(project, snippets);
 
         try {
             bookmarkManager = new BookmarkManager(snippets);
             welcomeScreen = new JEditorPane();
 
-            String html = new String(Files.readAllBytes(Paths.get(snippets.getParentFile().getAbsolutePath() + File.separator + "Welcome.html")));
             welcomeScreen.setContentType("text/html");
-            welcomeScreen.setText(html);
+
+            File welcomeFile = new File(snippets.getParentFile().getAbsolutePath() + File.separator + "Welcome.html");
+
+            if (!welcomeFile.exists()) {
+                welcomeFile.createNewFile();
+                BufferedWriter writer = new BufferedWriter(new FileWriter(welcomeFile));
+                String welcomeText = updateManager.makeGet("https://rubbaboy.me/codehelp/Welcome.html");
+                writer.write(welcomeText);
+                writer.close();
+
+                welcomeScreen.setText(welcomeText);
+            } else {
+                String html = new String(Files.readAllBytes(Paths.get(welcomeFile.toURI())));
+                welcomeScreen.setText(html);
+            }
+
+
             welcomeScreen.setEditable(false);
 
         } catch (IOException e) {
@@ -166,6 +190,8 @@ public class HelpToolWindow implements ToolWindowFactory {
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+        OLDinit(project);
+
         unbookmarkedIcon = new ImageIcon(unbookmarkedIcon.getImage().getScaledInstance(25, 25, Image.SCALE_SMOOTH));
         unbookmarkedIcon.getImage().flush();
 
@@ -270,9 +296,6 @@ public class HelpToolWindow implements ToolWindowFactory {
         jScroll.setBorder(null);
 
         leftContainer.add(jScroll);
-
-
-
 
 
         snippetContent = new JPanel();
@@ -407,7 +430,6 @@ public class HelpToolWindow implements ToolWindowFactory {
         titleBarFrame.add(snippetAuthor, gb.nextLine().fillCellHorizontally().weightx(1));
 
 
-
         snippetDescription = new JLabel();
         snippetDescription.setBorder(new JBEmptyBorder(10));
         titleBarFrame.add(snippetDescription, gb.nextLine().fillCellHorizontally().weightx(1));
@@ -458,8 +480,6 @@ public class HelpToolWindow implements ToolWindowFactory {
         /*
          *  IMPORTANT
          */
-
-
 
 
         new Thread(() -> {
@@ -526,23 +546,34 @@ public class HelpToolWindow implements ToolWindowFactory {
         jComponent.setMaximumSize(new Dimension(Double.valueOf(jpanel.getWidth()).intValue() + 100, 200));
     }
 
-    private void createIndex(File snippetsPath) {
-        try {
-            CreateIndex createIndex = new CreateIndex(snippetsPath);
-            File cbindex = new File(snippetsPath.getAbsolutePath() + File.separator + "index.chindex");
-            if (!cbindex.exists()) cbindex.createNewFile();
-            BufferedWriter out = new BufferedWriter(new FileWriter(cbindex));
+    private void createIndex(Project project, File snippetsPath) {
 
-            createIndex.createIndex(snippetsPath);
-            indexList = createIndex.getFileIndexes();
+        ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
+            ProgressIndicator progressIndicator = ProgressManager.getInstance().getProgressIndicator();
 
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            out.write(gson.toJson(indexList));
+            progressIndicator.setIndeterminate(true);
+            progressIndicator.setText("Indexing CodeHelp snippets...");
 
-            out.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            try {
+                CreateIndex createIndex = new CreateIndex(snippetsPath);
+                File cbindex = new File(snippetsPath.getAbsolutePath() + File.separator + "index.chindex");
+                if (!cbindex.exists()) cbindex.createNewFile();
+                BufferedWriter out = new BufferedWriter(new FileWriter(cbindex));
+
+                createIndex.createIndex(snippetsPath);
+                indexList = createIndex.getFileIndexes();
+
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                out.write(gson.toJson(indexList));
+
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            progressIndicator.setText("Finished");
+
+        }, "Indexing Snippets", true, project);
     }
 
     public CreateIndex.IndexFile getFileById(int id) {
@@ -644,9 +675,9 @@ public class HelpToolWindow implements ToolWindowFactory {
         panel.add(spacer);
     }
 
-    private int countLines(String str){
+    private int countLines(String str) {
         String[] lines = str.split("\r\n|\r|\n");
-        return  lines.length;
+        return lines.length;
     }
 
     private Font getRoboto(float size, boolean italics) throws IOException, FontFormatException {

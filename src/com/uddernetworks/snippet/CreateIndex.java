@@ -28,10 +28,7 @@ public class CreateIndex {
             if (file.isDirectory()) {
                 createIndex(file);
             } else {
-                String ttt = new String(Files.readAllBytes(Paths.get(file.getPath())));
-                System.out.println("ttt = " + ttt);
-                JSONSnippet snippet = gson.fromJson(ttt, JSONSnippet.class);
-                System.out.println("Title = \"" + snippet.getTitle() + "\"");
+                JSONSnippet snippet = gson.fromJson(new String(Files.readAllBytes(Paths.get(file.getPath()))), JSONSnippet.class);
                 indexFileList.add(new IndexFile(snippet.getId(), snippet.getTitle(), file, snippet.getTags()));
             }
         }
