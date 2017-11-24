@@ -1,12 +1,15 @@
 package com.uddernetworks.codehelp;
 
+import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.intellij.codeEditor.printing.PrintOption;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.ide.plugins.PluginManager;
 import com.intellij.lang.Language;
+import com.intellij.lang.LanguageUtil;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.colors.EditorColorsScheme;
 import com.intellij.openapi.extensions.Extensions;
@@ -42,14 +45,16 @@ import com.uddernetworks.snippet.Snippet;
 import com.uddernetworks.snippet.SnippetContainer;
 import com.uddernetworks.vfile.VDirectory;
 import com.uddernetworks.vfile.VFile;
+import javafx.scene.text.TextFlow;
+import org.commonmark.node.Node;
+import org.commonmark.parser.Parser;
+import org.commonmark.renderer.html.HtmlRenderer;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.TreeExpansionEvent;
-import javax.swing.event.TreeWillExpandListener;
+import javax.swing.event.*;
 import javax.swing.text.BadLocationException;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -87,10 +92,11 @@ public class HelpToolWindow implements ToolWindowFactory {
     private JLabel snippetTitle;
     private JLabel snippetAuthor;
     private JLayeredPane centerContent;
-    private JLabel snippetDescription;
+    private JEditorPane snippetDescription;
     private JLabel bookmarkButton;
     private JLabel infoButton;
     private JEditorPane welcomeScreen;
+    private Parser parser;
 
     public static DefaultMutableTreeNode root;
     public static DefaultMutableTreeNode bookmarkNode;
@@ -115,6 +121,8 @@ public class HelpToolWindow implements ToolWindowFactory {
     }
 
     private void OLDinit(Project project) {
+        parser = Parser.builder().build();
+
         snippets = new File(PluginManager.getPlugin(PluginId.getId("com.uddernetworks.codehelp")).getPath().getAbsolutePath() + File.separator + "snippets");
 
         snippets.mkdirs();
@@ -261,18 +269,22 @@ public class HelpToolWindow implements ToolWindowFactory {
 
             snippetTitle.setText("<html>" + jsonSnippet.getTitle() + "</html>");
             snippetAuthor.setText("<html>" + jsonSnippet.getAuthor() + "</html>");
-            snippetDescription.setText("<html>" + jsonSnippet.getDescription() + "</html>");
+            snippetDescription.setText("<html>" + htmlFormat(jsonSnippet.getDescription()) + "</html>");
             currentId = jsonSnippet.getId();
 
             removeAllSpecific();
 
-            HashMap<String, String> map = new HashMap<>();
-            for (Snippet snippet : jsonSnippet.getSnippets()) {
+            LinkedList<Snippet> temp = new LinkedList<>(Arrays.asList(jsonSnippet.getSnippets()));
+
+            LinkedHashMap<String, String> map = new LinkedHashMap<>();
+            LinkedHashMap<String, String> langs = new LinkedHashMap<>();
+            for (Snippet snippet : temp) {
                 map.put(snippet.getDescription(), snippet.getCode());
+                langs.put(snippet.getDescription(), snippet.getLanguage());
             }
 
             centerContent.removeAll();
-            createCodeBlock(centerContent, project, map);
+            createCodeBlock(centerContent, project, map, langs);
         });
 
         searchBar.addDocumentListener(new DocumentAdapter() {
@@ -344,6 +356,7 @@ public class HelpToolWindow implements ToolWindowFactory {
                 dialog.addId("#" + jsonSnippet.getId());
                 dialog.addDate(String.valueOf(jsonSnippet.getDate()));
                 dialog.addTags(String.join(", ", jsonSnippet.getTags()));
+                dialog.addReferences(jsonSnippet.getReferences());
 
                 dialog.getPeer().setTitle("Snippet Extra Info");
                 dialog.createCenterPanel();
@@ -430,7 +443,23 @@ public class HelpToolWindow implements ToolWindowFactory {
         titleBarFrame.add(snippetAuthor, gb.nextLine().fillCellHorizontally().weightx(1));
 
 
-        snippetDescription = new JLabel();
+        snippetDescription = new JEditorPane("text/html", "<html></html>");
+        snippetDescription.setOpaque(false);
+        snippetDescription.setEditable(false);
+        System.out.println("SIZE = " + snippetDescription.getFont().getSize());
+        try {
+            snippetDescription.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+            snippetDescription.setFont(getRoboto(snippetDescription.getFont().getSize(), false));
+        } catch (IOException | FontFormatException e) {
+            e.printStackTrace();
+        }
+        snippetDescription.addHyperlinkListener(hle -> {
+            if (HyperlinkEvent.EventType.ACTIVATED.equals(hle.getEventType())) {
+                System.out.println(hle.getURL());
+                BrowserUtil.browse(hle.getURL());
+            }
+        });
+
         snippetDescription.setBorder(new JBEmptyBorder(10));
         titleBarFrame.add(snippetDescription, gb.nextLine().fillCellHorizontally().weightx(1));
 
@@ -522,6 +551,12 @@ public class HelpToolWindow implements ToolWindowFactory {
             resizeShit();
         }).start();
 
+    }
+
+    private String htmlFormat(String input) {
+        Node document = parser.parse(input);
+        HtmlRenderer renderer = HtmlRenderer.builder().build();
+        return renderer.render(document);
     }
 
     private void updateBookmark() {
@@ -617,7 +652,7 @@ public class HelpToolWindow implements ToolWindowFactory {
 //        });
     }
 
-    private void createCodeBlock(JLayeredPane panel, Project project, HashMap<String, String> map) {
+    private void createCodeBlock(JLayeredPane panel, Project project, LinkedHashMap<String, String> map, LinkedHashMap<String, String> langs) {
         GridBag gb = new GridBag()
                 .setDefaultAnchor(GridBagConstraints.NORTHWEST)
                 .setDefaultInsets(JBUI.insets(2))
@@ -626,24 +661,27 @@ public class HelpToolWindow implements ToolWindowFactory {
             String classString = map.get(desc);
 
             JPanel myPanel = new JPanel(new GridBagLayout());
-//            myPanelsList.add(myPanel);
 
-//            JLabel ttt = new JLabel("Test shit");
+            JEditorPane snippetDescriptionSpecific = new JEditorPane("text/html", "<html>" + htmlFormat(desc) + "</html>");
+            snippetDescriptionSpecific.setOpaque(false);
+            snippetDescriptionSpecific.setEditable(false);
+            try {
+                snippetDescriptionSpecific.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+                snippetDescriptionSpecific.setFont(getRoboto(snippetDescriptionSpecific.getFont().getSize(), false));
+            } catch (IOException | FontFormatException e) {
+                e.printStackTrace();
+            }
+            snippetDescriptionSpecific.addHyperlinkListener(hle -> {
+                if (HyperlinkEvent.EventType.ACTIVATED.equals(hle.getEventType())) {
+                    System.out.println(hle.getURL());
+                    BrowserUtil.browse(hle.getURL());
+                }
+            });
 
-//        myPanel.add(ttt);
-
-//        ttt.setBackground(JBColor.RED);
-//        ttt.setOpaque(true);
-//        ttt.setPreferredSize(new Dimension(300, 100));
-//        ttt.setBounds(400, 500, 300, 100);
-//        ttt.repaint();
-
-
-            JLabel snippetDescriptionSpecific = new JLabel("<html>" + desc + "</html>");
             snippetDescriptionSpecific.setBorder(new EmptyBorder(20, 0, 0, 0));
             myPanel.add(snippetDescriptionSpecific, gb.nextLine().fillCellHorizontally().weightx(1));
 
-            CodeDisplayTextField edtf = new CodeDisplayTextField(classString, project, JavaFileType.INSTANCE, false);
+            CodeDisplayTextField edtf = new CodeDisplayTextField(classString, project, Language.findLanguageByID(langs.get(desc)).getAssociatedFileType(), false);
             edtf.setOneLineMode(false);
 
             int linesInCode = countLines(classString);
@@ -680,8 +718,16 @@ public class HelpToolWindow implements ToolWindowFactory {
         return lines.length;
     }
 
+    private Font roboto;
+    private Font robotoItalics;
+
     private Font getRoboto(float size, boolean italics) throws IOException, FontFormatException {
-        Font font = Font.createFont(Font.TRUETYPE_FONT, new File(getClass().getResource((italics) ? "/RobotoItalics.ttf" : "/Roboto.ttf").getFile()));
-        return font.deriveFont(size);
+        if (italics) {
+            robotoItalics = Font.createFont(Font.TRUETYPE_FONT, new File(getClass().getResource("/RobotoItalics.ttf").getFile())).deriveFont(size);
+        } else {
+            roboto = Font.createFont(Font.TRUETYPE_FONT, new File(getClass().getResource("/Roboto.ttf").getFile())).deriveFont(size);
+        }
+
+        return (italics) ? robotoItalics : roboto;
     }
 }

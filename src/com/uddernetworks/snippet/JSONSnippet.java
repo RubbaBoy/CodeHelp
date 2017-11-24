@@ -8,16 +8,18 @@ public class JSONSnippet implements SnippetObject {
     private String Author;
     private String description;
     private String[] tags;
+    private String[] references;
     private Snippet[] snippets;
 
 
-    public JSONSnippet(int id, String date, String title, String author, String description, String[] tags, Snippet[] snippets) {
+    public JSONSnippet(int id, String date, String title, String author, String description, String[] tags, String[] references, Snippet[] snippets) {
         this.id = id;
         this.date = date;
         this.Title = title;
         this.Author = author;
         this.description = description;
         this.tags = tags;
+        this.references = references;
         this.snippets = snippets;
     }
 
@@ -49,6 +51,10 @@ public class JSONSnippet implements SnippetObject {
 
     public String[] getTags() {
         return tags;
+    }
+
+    public String[] getReferences() {
+        return references;
     }
 
     public Snippet[] getSnippets() {

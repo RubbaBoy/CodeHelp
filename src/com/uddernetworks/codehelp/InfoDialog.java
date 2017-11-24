@@ -1,10 +1,13 @@
 package com.uddernetworks.codehelp;
 
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBPanel;
 
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
 import java.awt.*;
+import java.io.IOException;
 
 public class InfoDialog extends DialogWrapper {
     private JPanel panel;
@@ -20,8 +23,6 @@ public class InfoDialog extends DialogWrapper {
         panel = new JPanel();
 
         init();
-
-//        setSize(300, 200);
     }
 
     private void addText(String stat, String info) {
@@ -48,13 +49,32 @@ public class InfoDialog extends DialogWrapper {
         addText("Snippet Tags", tags);
     }
 
-    @Override
-    protected JComponent createCenterPanel() {
-        JLabel label = new JLabel("<html>" + text.toString() + "</html>");
-//        label.setPreferredSize(new Dimension(250, 200));
-        panel.add(label);
-        return panel;
+    public void addReferences(String[] refs) {
+        if (refs.length == 0 || (refs.length == 1 && refs[0].trim().equals(""))) return;
+        text.append("References:").append("<br>");
+        for (String ref : refs) {
+            text.append("<a href=\"").append(ref).append("\">").append(ref).append("<br>");
+        }
     }
 
+    @Override
+    protected JComponent createCenterPanel() {
+        JLabel label = new JLabel();
+
+        JEditorPane output = new JEditorPane("text/html", "<html>" + text.toString() + "</html>");
+        output.setOpaque(false);
+        output.setEditable(false);
+        output.setFont(label.getFont());
+        output.addHyperlinkListener(hle -> {
+            if (HyperlinkEvent.EventType.ACTIVATED.equals(hle.getEventType())) {
+                System.out.println(hle.getURL());
+                BrowserUtil.browse(hle.getURL());
+            }
+        });
+
+
+        panel.add(output);
+        return panel;
+    }
 
 }

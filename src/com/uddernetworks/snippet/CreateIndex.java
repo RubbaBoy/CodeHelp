@@ -1,6 +1,7 @@
 package com.uddernetworks.snippet;
 
 import com.google.gson.Gson;
+import com.intellij.util.text.MarkdownUtil;
 
 import java.io.File;
 import java.io.IOException;

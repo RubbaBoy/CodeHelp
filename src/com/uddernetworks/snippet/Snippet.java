@@ -4,11 +4,13 @@ public class Snippet {
 
     private String description;
     private String code;
+    private String lang;
 
 
-    public Snippet(String description, String code) {
+    public Snippet(String description, String code, String lang) {
         this.description = description;
         this.code = code;
+        this.lang = lang;
     }
 
     public String getDescription() {
@@ -17,6 +19,10 @@ public class Snippet {
 
     public String getCode() {
         return code;
+    }
+
+    public String getLanguage() {
+        return lang;
     }
 
     @Override

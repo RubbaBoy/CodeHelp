@@ -10,6 +10,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.LineSeparator;
+import com.uddernetworks.snippet.Snippet;
 import org.apache.commons.lang.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -59,14 +60,16 @@ public class UpdateManager {
     }
 
     private void updateToVersion(ProgressIndicator progressIndicator, int from, int to) {
-        for (String name : System.getProperties().stringPropertyNames()) {
-            System.out.println("name = " + name + "     value = " + System.getProperty(name));
-        }
+//        for (String name : System.getProperties().stringPropertyNames()) {
+//            System.out.println("name = " + name + "     value = " + System.getProperty(name));
+//        }
 
         setVersion(to);
         progressIndicator.setText("Fetching update...");
         String json = makeGet("https://rubbaboy.me/codehelp/update/fetch.php?minver=" + from + "&maxver=" + to);
         Gson gson = new Gson();
+
+        System.out.println("json = " + json);
 
         SnippetLocWrapper snippets[] = gson.fromJson(json, SnippetLocWrapper[].class);
         progressIndicator.setIndeterminate(false);
@@ -87,8 +90,7 @@ public class UpdateManager {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
                 file.createNewFile();
 
-//                writer.write(gson.toJson(snippet.getJsonSnippet()).replace("%n", LineSeparator.getSystemLineSeparator().getSeparatorString()));
-                writer.write(gson.toJson(snippet.getJsonSnippet()).replace("%n", "\n")); // WORKSSSSSSSSSSSSSS
+                writer.write(gson.toJson(snippet.getJsonSnippet()).replace("%n", "\n"));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -129,6 +131,7 @@ public class UpdateManager {
 
     public String makeGet(String url) {
         try {
+            System.out.println("Making Get to url \"" + url + "\"");
             URL obj = new URL(url);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
