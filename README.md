@@ -2,7 +2,9 @@
 CodeHelp is an Intellij plugin for helping out any user who often forgets how to use something and end up googling for the same example every time,  or just wants to look for how to use something within the ease of their own IDE. The best part about CodeHelp is the fact that any user can contribute code snippets to the CodeHelp database (After being accepted) which everyone can use when they restart their IDE.
 
 ## Installation
-** Coming soon **
+Installation is extremely easy and straightforward. First, go to `File > Settings` and click on `Plugins` on the left bar. Click `Browser Repositories` to search for a plugin. Search in the search bar `CodeHelp` and click the green `Install` button. Lastly, restart your IDE.
+![](https://rubbaboy.me/images/2vsshqe.png)
+![](https://rubbaboy.me/images/1d7m5x5.png)
 
 ## Usage
 When you boot up your IDE, click the side toolbar on "CodeHelp".
