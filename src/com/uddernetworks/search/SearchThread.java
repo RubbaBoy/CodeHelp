@@ -26,7 +26,6 @@ public class SearchThread {
                     e.printStackTrace();
                 }
             }
-//            System.out.println("Ending thread! Oh no!");
         });
 
         thread.start();
@@ -42,7 +41,6 @@ public class SearchThread {
             });
             return;
         }
-        System.out.println("Searching " + search);
         SearchThread.currentSearching = search.trim();
     }
 

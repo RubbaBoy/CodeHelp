@@ -1,18 +1,10 @@
 package com.uddernetworks.codehelp;
 
 import com.google.gson.Gson;
-import com.intellij.openapi.application.AccessToken;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.util.LineSeparator;
-import com.uddernetworks.snippet.Snippet;
 import org.apache.commons.lang.math.NumberUtils;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.net.HttpURLConnection;

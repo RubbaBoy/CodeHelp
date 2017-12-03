@@ -1,20 +1,20 @@
 <idea-plugin>
   <id>com.uddernetworks.codehelp</id>
   <name>CodeHelp</name>
-  <version>1.0</version>
-  <vendor email="inbox@rubbaboy.me" url="http://www.shitprojects.download/">RubbaBoy</vendor>
+  <version>1.1</version>
+  <vendor email="inbox@rubbaboy.me" url="https://rubbaboy.me/codehelp/">RubbaBoy</vendor>
 
   <description><![CDATA[
-      Provides help for writing code.
+      CodeHelp is an Intellij plugin for helping out any user who often forgets how to use something and end up googling for the same example every time,  or just wants to look for how to use something within the ease of their own IDE. The best part about CodeHelp is the fact that any user can contribute code snippets to the CodeHelp database (After being accepted) which everyone can use when they restart their IDE.
     ]]></description>
 
   <change-notes><![CDATA[
-      Created plugin.
+      Fixed scrolling and font issues
     ]]>
   </change-notes>
 
   <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-  <!--<idea-version since-build="173.0"/>-->
+  <idea-version since-build="162"/>
 
   <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
        on how to target different products -->
@@ -23,8 +23,7 @@
   -->
 
   <extensions defaultExtensionNs="com.intellij">
-    <toolWindow id="Code Help" secondary="true" icon="/help.png" anchor="right"
-                factoryClass="com.uddernetworks.codehelp.HelpToolWindow"/>
+    <toolWindow id="CodeHelp" secondary="true" icon="/help.png" anchor="right" factoryClass="com.uddernetworks.codehelp.HelpToolWindow"/>
   </extensions>
 
   <actions>

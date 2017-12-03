@@ -23,12 +23,6 @@ public class JSONSnippet implements SnippetObject {
         this.snippets = snippets;
     }
 
-
-//    @Override
-//    public String toString() {
-//        return "[JSONSnippet id = " + id + " date = " + date + " Title = \"" + Title + "\" Author = \"" + Author + "\" description = \"" + description + "\" tags = \"" + Arrays.toString(snippets) + "\" snippets = \"" + Arrays.toString(snippets) + "\"]";
-//    }
-
     public int getId() {
         return id;
     }

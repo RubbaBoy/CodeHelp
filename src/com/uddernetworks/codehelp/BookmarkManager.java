@@ -6,16 +6,13 @@ import com.uddernetworks.snippet.CreateIndex;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeNode;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 
 public class BookmarkManager {
@@ -97,16 +94,11 @@ public class BookmarkManager {
         for (Integer bookmark : bookmarks.getBookmarks()) {
             for (CreateIndex.IndexFile snippet : snippets) {
                 if (snippet.getId() == bookmark.intValue()) {
-                    System.out.println("root = " + root);
-                    System.out.println("jTree = " + jTree);
-                    System.out.println("bookmarkNode = " + bookmarkNode);
-                    System.out.println("snippet = " + snippet);
                     ((DefaultTreeModel) jTree.getModel()).insertNodeInto(new DefaultMutableTreeNode(snippet), bookmarkNode, bookmarkNode.getChildCount());
                 }
             }
         }
 
-        System.out.println("bookmarkNode = " + bookmarkNode);
         return bookmarkNode;
     }
 

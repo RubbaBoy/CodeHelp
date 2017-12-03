@@ -1,33 +1,20 @@
 package com.uddernetworks.codehelp;
 
-import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.intellij.codeEditor.printing.PrintOption;
 import com.intellij.ide.BrowserUtil;
-import com.intellij.ide.highlighter.JavaFileType;
-import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.ide.plugins.PluginManager;
 import com.intellij.lang.Language;
-import com.intellij.lang.LanguageUtil;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.colors.EditorColorsScheme;
-import com.intellij.openapi.extensions.Extensions;
+import com.intellij.openapi.editor.colors.FontPreferences;
 import com.intellij.openapi.extensions.PluginId;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
-import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
-import com.intellij.psi.*;
-import com.intellij.psi.impl.PsiFileFactoryImpl;
-import com.intellij.psi.impl.file.PsiDirectoryFactory;
-import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.SearchTextField;
@@ -42,10 +29,7 @@ import com.uddernetworks.search.SearchThread;
 import com.uddernetworks.snippet.CreateIndex;
 import com.uddernetworks.snippet.JSONSnippet;
 import com.uddernetworks.snippet.Snippet;
-import com.uddernetworks.snippet.SnippetContainer;
-import com.uddernetworks.vfile.VDirectory;
 import com.uddernetworks.vfile.VFile;
-import javafx.scene.text.TextFlow;
 import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
@@ -54,11 +38,10 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
-import javax.swing.event.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.HyperlinkEvent;
 import javax.swing.text.BadLocationException;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.ExpandVetoException;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -68,17 +51,12 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.InetAddress;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
 
 public class HelpToolWindow implements ToolWindowFactory {
 
@@ -86,6 +64,7 @@ public class HelpToolWindow implements ToolWindowFactory {
     private JPanel leftContainer;
     public static Tree jTree;
     private JScrollPane jScroll;
+    private JScrollPane mainScroll;
     private SearchTextField searchBar;
     private JPanel snippetContent;
     private JLayeredPane titleBarFrame;
@@ -167,6 +146,7 @@ public class HelpToolWindow implements ToolWindowFactory {
 
 
             welcomeScreen.setEditable(false);
+            welcomeScreen.setBorder(null);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -178,22 +158,43 @@ public class HelpToolWindow implements ToolWindowFactory {
         return true;
     }
 
-    private void resizeShit() {
-        int rightWidth = jpanel.getWidth() - (200) - 30;
+    private List<JComponent> snippetDescs = new ArrayList<>();
 
-        snippetContent.setPreferredSize(new Dimension(rightWidth, jpanel.getHeight()));
-        snippetContent.setBounds(200, 0, rightWidth, jpanel.getHeight());
-        snippetContent.repaint();
+    private void resizeShit() {
+        int rightWidth = jpanel.getWidth() - (200) - 10;
+
+        mainScroll.setPreferredSize(new Dimension(rightWidth, jpanel.getHeight()));
+        mainScroll.setBounds(200, 0, rightWidth, jpanel.getHeight());
+        mainScroll.repaint();
+
+        jScroll.setPreferredSize(new Dimension(199, jpanel.getHeight() - 30));
+        jScroll.setBounds(0, 30, 199, jpanel.getHeight() - 30);
 
         leftContainer.setBounds(0, 0, 200, jpanel.getHeight());
         leftContainer.setPreferredSize(new Dimension(200, jpanel.getHeight()));
+
         leftContainer.repaint();
+        jScroll.repaint();
 
         titleBarFrame.setOpaque(true);
 
         fitVertToContent(titleBarFrame);
 
         snippetTitle.setOpaque(true);
+
+        int addHeight = titleBarFrame.getBounds().height;
+
+        addHeight += snippetDescription.getBounds().height;
+
+
+        for (JComponent component : snippetDescs) {
+            addHeight += component.getBounds().height;
+        }
+
+        snippetContent.setPreferredSize(new Dimension(rightWidth - 10, addHeight));
+        snippetContent.setBounds(200, 0, rightWidth - 10, addHeight);
+
+        jTree.updateUI();
     }
 
     @Override
@@ -272,8 +273,6 @@ public class HelpToolWindow implements ToolWindowFactory {
             snippetDescription.setText("<html>" + htmlFormat(jsonSnippet.getDescription()) + "</html>");
             currentId = jsonSnippet.getId();
 
-            removeAllSpecific();
-
             LinkedList<Snippet> temp = new LinkedList<>(Arrays.asList(jsonSnippet.getSnippets()));
 
             LinkedHashMap<String, String> map = new LinkedHashMap<>();
@@ -284,7 +283,16 @@ public class HelpToolWindow implements ToolWindowFactory {
             }
 
             centerContent.removeAll();
+            snippetDescs.clear();
             createCodeBlock(centerContent, project, map, langs);
+
+            new Thread(() -> {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ignored) {}
+
+                resizeShit();
+            }).start();
         });
 
         searchBar.addDocumentListener(new DocumentAdapter() {
@@ -332,11 +340,7 @@ public class HelpToolWindow implements ToolWindowFactory {
 
         snippetTitle = new JLabel();
         snippetTitle.setVerticalTextPosition(JLabel.TOP);
-        try {
-            snippetTitle.setFont(getRoboto(36F, false));
-        } catch (IOException | FontFormatException e) {
-            e.printStackTrace();
-        }
+        snippetTitle.setFont(getFont(36, false));
         titleBarFrame.add(snippetTitle, gb.nextLine().anchor(GridBagConstraints.NORTHWEST).padx(70).fillCellHorizontally().weightx(1));
 
         infoButton = new JLabel(moreInfoIcon);
@@ -427,18 +431,13 @@ public class HelpToolWindow implements ToolWindowFactory {
         });
 
         bookmarkButton.setOpaque(true);
-//        bookmarkButton.setBackground(JBColor.RED);
         titleBarFrame.add(bookmarkButton, gb.next().next().anchor(GridBagConstraints.EAST).padx(10));
 
 
-//        snippetAuthor = new JLabel("Snippet Author");
         snippetAuthor = new JLabel();
         snippetAuthor.setVerticalTextPosition(JLabel.TOP);
-        try {
-            snippetAuthor.setFont(getRoboto(20F, true));
-        } catch (IOException | FontFormatException e) {
-            e.printStackTrace();
-        }
+        snippetAuthor.setFont(getFont(20, true));
+
 
         titleBarFrame.add(snippetAuthor, gb.nextLine().fillCellHorizontally().weightx(1));
 
@@ -446,13 +445,8 @@ public class HelpToolWindow implements ToolWindowFactory {
         snippetDescription = new JEditorPane("text/html", "<html></html>");
         snippetDescription.setOpaque(false);
         snippetDescription.setEditable(false);
-        System.out.println("SIZE = " + snippetDescription.getFont().getSize());
-        try {
-            snippetDescription.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
-            snippetDescription.setFont(getRoboto(snippetDescription.getFont().getSize(), false));
-        } catch (IOException | FontFormatException e) {
-            e.printStackTrace();
-        }
+        snippetDescription.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+        snippetDescription.setFont(getFont(snippetDescription.getFont().getSize(), false));
         snippetDescription.addHyperlinkListener(hle -> {
             if (HyperlinkEvent.EventType.ACTIVATED.equals(hle.getEventType())) {
                 System.out.println(hle.getURL());
@@ -476,13 +470,6 @@ public class HelpToolWindow implements ToolWindowFactory {
         centerContent.setLayout(new BoxLayout(centerContent, BoxLayout.PAGE_AXIS));
 
 
-//        JLabel spacerr = new JLabel("SPACER");
-//        spacerr.setPreferredSize(new Dimension(100000, 500));
-//        snippetContent.add(spacerr);
-
-//        initializeCodeSnippets();
-//        createCodeBlock(centerContent, project);
-
 
         snippetContent.add(centerContent);
 
@@ -491,9 +478,10 @@ public class HelpToolWindow implements ToolWindowFactory {
          * End of main content section
          */
 
-        jpanel.add(snippetContent);
 
-//        snippetContent.show(false);
+        mainScroll = new JBScrollPane(snippetContent);
+        jpanel.add(mainScroll);
+
 
         bookmarkButton.hide();
         infoButton.hide();
@@ -513,7 +501,7 @@ public class HelpToolWindow implements ToolWindowFactory {
 
         new Thread(() -> {
             try {
-                Thread.sleep(500);
+                Thread.sleep(200);
             } catch (InterruptedException ignored) {
             }
 
@@ -521,24 +509,15 @@ public class HelpToolWindow implements ToolWindowFactory {
 
             leftContainer.setBounds(0, 0, 200, jpanel.getHeight());
             leftContainer.setPreferredSize(new Dimension(200, jpanel.getHeight()));
-            leftContainer.repaint();
-
-            snippetContent.setPreferredSize(new Dimension(jpanel.getWidth() - (200) - 30, jpanel.getHeight()));
-            snippetContent.setBounds(200, 0, jpanel.getWidth() - (200) - 30, jpanel.getHeight());
-            snippetContent.repaint();
 
             searchBar.setPreferredSize(new Dimension(214, 28));
             searchBar.setBounds(5, 0, 190, 28);
             searchBar.repaint();
-
-
-            jScroll.setPreferredSize(new Dimension(199, jpanel.getHeight() - 30));
-            jScroll.setBounds(0, 30, 199, jpanel.getHeight() - 30);
-            jScroll.repaint();
+            searchBar.updateUI();
 
             snippetContent.add(welcomeScreen);
-            welcomeScreen.setPreferredSize(new Dimension(snippetContent.getWidth(), snippetContent.getHeight()));
-            welcomeScreen.setBounds(0, 0, snippetContent.getWidth(), snippetContent.getHeight());
+            welcomeScreen.setPreferredSize(new Dimension(snippetContent.getWidth(), jpanel.getHeight()));
+            welcomeScreen.setBounds(0, 0, snippetContent.getWidth(), jpanel.getHeight());
             welcomeScreen.repaint();
 
             jpanel.addComponentListener(new ComponentAdapter() {
@@ -548,6 +527,10 @@ public class HelpToolWindow implements ToolWindowFactory {
             });
 
             jpanel.repaint();
+
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {}
             resizeShit();
         }).start();
 
@@ -573,11 +556,6 @@ public class HelpToolWindow implements ToolWindowFactory {
     }
 
     private void fitVertToContent(JComponent jComponent) {
-        int totalHeight = 0;
-        for (Component component : jComponent.getComponents()) {
-            totalHeight += component.getBounds().height;
-        }
-
         jComponent.setMaximumSize(new Dimension(Double.valueOf(jpanel.getWidth()).intValue() + 100, 200));
     }
 
@@ -623,35 +601,6 @@ public class HelpToolWindow implements ToolWindowFactory {
     }
 
 
-    private List<JPanel> myPanelsList = new ArrayList<>();
-
-    private void removeAllSpecific() {
-
-//        SwingUtilities.invokeLater(() -> {
-//            spacers.forEach(spacer -> {
-//                panell.remove(spacer);
-//
-//                spacer.revalidate();
-//                spacer.repaint();
-//            });
-//
-//            myPanelsList.forEach(jPanel -> {
-//                panell.remove(jPanel);
-//
-//                jPanel.removeAll();
-//                jPanel.revalidate();
-//                jPanel.repaint();
-//            });
-//
-//
-//
-//
-//            spacers.clear();
-//            myPanelsList.clear();
-//            rawCodeSnippets.clear();
-//        });
-    }
-
     private void createCodeBlock(JLayeredPane panel, Project project, LinkedHashMap<String, String> map, LinkedHashMap<String, String> langs) {
         GridBag gb = new GridBag()
                 .setDefaultAnchor(GridBagConstraints.NORTHWEST)
@@ -665,12 +614,11 @@ public class HelpToolWindow implements ToolWindowFactory {
             JEditorPane snippetDescriptionSpecific = new JEditorPane("text/html", "<html>" + htmlFormat(desc) + "</html>");
             snippetDescriptionSpecific.setOpaque(false);
             snippetDescriptionSpecific.setEditable(false);
-            try {
-                snippetDescriptionSpecific.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
-                snippetDescriptionSpecific.setFont(getRoboto(snippetDescriptionSpecific.getFont().getSize(), false));
-            } catch (IOException | FontFormatException e) {
-                e.printStackTrace();
-            }
+            snippetDescriptionSpecific.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+            snippetDescriptionSpecific.setFont(getFont(snippetDescriptionSpecific.getFont().getSize(), false));
+
+            snippetDescs.add(snippetDescriptionSpecific);
+
             snippetDescriptionSpecific.addHyperlinkListener(hle -> {
                 if (HyperlinkEvent.EventType.ACTIVATED.equals(hle.getEventType())) {
                     System.out.println(hle.getURL());
@@ -681,15 +629,17 @@ public class HelpToolWindow implements ToolWindowFactory {
             snippetDescriptionSpecific.setBorder(new EmptyBorder(20, 0, 0, 0));
             myPanel.add(snippetDescriptionSpecific, gb.nextLine().fillCellHorizontally().weightx(1));
 
+//            System.out.println("Description height: " + snippetDescriptionSpecific.getHeight());
+
             CodeDisplayTextField edtf = new CodeDisplayTextField(classString, project, Language.findLanguageByID(langs.get(desc)).getAssociatedFileType(), false);
             edtf.setOneLineMode(false);
 
             int linesInCode = countLines(classString);
             int lineHeight = edtf.getFontMetrics(edtf.getFont()).getHeight();
 
-            edtf.setSize(10000, lineHeight * linesInCode);
-            edtf.setPreferredSize(new Dimension(10000, lineHeight * linesInCode));
-            edtf.setMaximumSize(new Dimension(10000, lineHeight * linesInCode));
+            edtf.setSize(-1, lineHeight * linesInCode);
+            edtf.setPreferredSize(new Dimension(-1, lineHeight * linesInCode));
+            edtf.setMaximumSize(new Dimension(-1, lineHeight * linesInCode));
 
             EditorColorsScheme scheme = EditorColorsManager.getInstance().getGlobalScheme();
             Color backgroundColor = scheme.getDefaultBackground();
@@ -700,9 +650,10 @@ public class HelpToolWindow implements ToolWindowFactory {
 
             myPanel.add(edtf, gb.nextLine().next().pady(linesInCode * lineHeight).fillCellHorizontally().weightx(1));
 
+            snippetDescs.add(edtf);
+
             centerContent.add(myPanel);
         }
-
 
         addSpacer(centerContent);
     }
@@ -718,16 +669,7 @@ public class HelpToolWindow implements ToolWindowFactory {
         return lines.length;
     }
 
-    private Font roboto;
-    private Font robotoItalics;
-
-    private Font getRoboto(float size, boolean italics) throws IOException, FontFormatException {
-        if (italics) {
-            robotoItalics = Font.createFont(Font.TRUETYPE_FONT, new File(getClass().getResource("/RobotoItalics.ttf").getFile())).deriveFont(size);
-        } else {
-            roboto = Font.createFont(Font.TRUETYPE_FONT, new File(getClass().getResource("/Roboto.ttf").getFile())).deriveFont(size);
-        }
-
-        return (italics) ? robotoItalics : roboto;
+    private Font getFont(int size, boolean italics) {
+        return (italics) ? new Font(FontPreferences.getDefaultFontName(), Font.ITALIC, size) : new Font(FontPreferences.getDefaultFontName(), Font.PLAIN, size);
     }
 }

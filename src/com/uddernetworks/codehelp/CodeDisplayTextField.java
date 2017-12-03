@@ -10,9 +10,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.ui.EditorTextField;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
 import java.awt.*;
-import java.lang.reflect.Field;
 
 public class CodeDisplayTextField extends EditorTextField {
 
@@ -46,37 +44,6 @@ public class CodeDisplayTextField extends EditorTextField {
         this.background = editor.getBackgroundColor();
 
         this.editor = editor;
-
-//        editor.getComponent().setMinimumSize(new Dimension(750, 750));
-//        editor.getComponent().setMaximumSize(new Dimension(750, 750));
-//        editor.getComponent().setSize(750, 750);
-//
-//        editor.getScrollPane().setMinimumSize(new Dimension(750, 750));
-//        editor.getScrollPane().setMaximumSize(new Dimension(750, 750));
-//        editor.getScrollPane().setSize(750, 750);
-//
-//        System.out.println(editor.getScrollPane().getSize().getHeight());
-//        System.out.println(editor.getScrollPane().getSize().getWidth());
-//
-//        new Thread(() -> {
-//            try {
-//                Thread.sleep(5000);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//
-//
-//            System.out.println(editor.getScrollPane().getSize().getHeight());
-//            System.out.println(editor.getScrollPane().getSize().getWidth());
-//        }).start();
-
-//
-//        try {
-//            Field field = editor.getClass().getDeclaredField("a8");
-//
-//        } catch (NoSuchFieldException e) {
-//            e.printStackTrace();
-//        }
 
         return editor;
     }

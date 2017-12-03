@@ -2,12 +2,9 @@ package com.uddernetworks.codehelp;
 
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.ui.components.JBPanel;
 
 import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
-import java.awt.*;
-import java.io.IOException;
 
 public class InfoDialog extends DialogWrapper {
     private JPanel panel;
